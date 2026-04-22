@@ -86,4 +86,34 @@ describe('integration', () => {
 
     await fs.rm(tempDir, { recursive: true, force: true });
   });
+
+  it('should continue processing other folders when one folder throws error', async () => {
+    const tempDir = await createTempDir();
+    const sourceDir = path.join(tempDir, 'source');
+    const targetDir = path.join(tempDir, 'target');
+
+    // 创建一个会导致文件重命名失败的文件夹（设为只读）
+    await fs.mkdir(path.join(sourceDir, 'BAD-001'), { recursive: true });
+    await fs.writeFile(path.join(sourceDir, 'BAD-001', 'video.mp4'), 'v');
+    await fs.chmod(path.join(sourceDir, 'BAD-001'), 0o555);
+
+    // 创建一个正常文件夹
+    await fs.mkdir(path.join(sourceDir, 'OK-002'), { recursive: true });
+    await fs.writeFile(path.join(sourceDir, 'OK-002', 'video.mp4'), 'v2');
+
+    const result = await organize(sourceDir, targetDir, 1);
+
+    assert.strictEqual(result.length, 2);
+
+    const badResult = result.find(r => r.sourceName === 'BAD-001');
+    const okResult = result.find(r => r.sourceName === 'OK-002');
+
+    assert.strictEqual(badResult.status, 'error');
+    assert.ok(badResult.message.includes('错误') || badResult.message.length > 0);
+    assert.strictEqual(okResult.status, 'moved');
+
+    // 清理：先恢复权限
+    await fs.chmod(path.join(sourceDir, 'BAD-001'), 0o755);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
 });
