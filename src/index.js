@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import { processFolder } from './fileProcessor.js';
 import { moveFolder } from './mover.js';
 
-export async function organize(sourceDir, targetDir, concurrency = 5) {
+export async function organize(sourceDir, targetDir, concurrency = 5, onProgress = null) {
   const results = [];
   const limit = pLimit(concurrency);
 
@@ -49,12 +49,17 @@ export async function organize(sourceDir, targetDir, concurrency = 5) {
       const targetPath = path.join(targetDir, processed.newFolderName);
       const moveResult = await moveFolder(newFolderPath, targetPath);
 
-      results.push({
+      const result = {
         sourceName: folderName,
         newFolderName: processed.newFolderName,
         status: moveResult.status,
         message: moveResult.message
-      });
+      };
+      results.push(result);
+
+      if (onProgress) {
+        onProgress(result);
+      }
     })
   );
 

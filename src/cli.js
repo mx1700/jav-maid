@@ -32,35 +32,34 @@ async function main() {
     process.exit(1);
   }
 
-  // 确保目标文件夹存在
+  // 检查目标文件夹是否存在
   try {
-    await fs.mkdir(target, { recursive: true });
+    const targetStat = await fs.stat(target);
+    if (!targetStat.isDirectory()) {
+      console.error(`错误: 目标路径不是文件夹: ${target}`);
+      process.exit(1);
+    }
   } catch (err) {
-    console.error(`错误: 无法创建目标文件夹: ${target}`);
+    console.error(`错误: 目标文件夹不存在: ${target}`);
     process.exit(1);
   }
 
   console.log(`开始整理...\n源文件夹: ${source}\n目标文件夹: ${target}\n并发数: ${concurrency}\n`);
 
-  const results = await organize(source, target, concurrency);
+  const statusMap = {
+    moved: ' [移动成功]',
+    deleted: ' [已删除]',
+    conflict: ' [冲突]',
+    skipped: ' [跳过]'
+  };
 
-  // 输出结果
-  console.log('\n处理结果:');
-  console.log('='.repeat(60));
-  for (const result of results) {
+  const results = await organize(source, target, concurrency, (result) => {
     const arrow = result.newFolderName ? ` → ${result.newFolderName}` : '';
-    const statusMap = {
-      moved: ' [移动成功]',
-      deleted: ' [已删除]',
-      conflict: ' [冲突]',
-      skipped: ' [跳过]'
-    };
     console.log(`${result.sourceName}${arrow}${statusMap[result.status] || ''}`);
     if (result.message) {
       console.log(`  └─ ${result.message}`);
     }
-  }
-  console.log('='.repeat(60));
+  });
 
   const summary = results.reduce((acc, r) => {
     acc[r.status] = (acc[r.status] || 0) + 1;
