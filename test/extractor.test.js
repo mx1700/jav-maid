@@ -62,4 +62,34 @@ describe('extractor', () => {
     const result = extractCode('ABC-123-UC-C');
     assert.deepStrictEqual(result, { code: 'ABC-123', extra: 'UC' });
   });
+
+  it('should handle bracket website prefix with lowercase code and -C', () => {
+    const result = extractCode('[acb.com]abc-123-c');
+    assert.deepStrictEqual(result, { code: 'ABC-123', extra: 'C' });
+  });
+
+  it('should handle website prefix with file extension', () => {
+    const result = extractCode('hhd800.com@MUDR-181.mp4');
+    assert.deepStrictEqual(result, { code: 'MUDR-181', extra: null });
+  });
+
+  it('should extract real code when bracket contains similar pattern', () => {
+    const result = extractCode('[FHD-1080P]MIGD-348');
+    assert.deepStrictEqual(result, { code: 'MIGD-348', extra: null });
+  });
+
+  it('should not treat [c] as extra info', () => {
+    const result = extractCode('[1080p]ABC-123[c]');
+    assert.deepStrictEqual(result, { code: 'ABC-123', extra: null });
+  });
+
+  it('should handle parenthesis prefix', () => {
+    const result = extractCode('(同人志)ABC-999');
+    assert.deepStrictEqual(result, { code: 'ABC-999', extra: null });
+  });
+
+  it('should not treat -DVD as extra info', () => {
+    const result = extractCode('ABC-123-DVD');
+    assert.deepStrictEqual(result, { code: 'ABC-123', extra: null });
+  });
 });
