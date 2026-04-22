@@ -37,7 +37,7 @@ describe('mover', () => {
     const targetFolder = path.join(targetDir, 'ABC-123');
     
     await fs.mkdir(sourceFolder, { recursive: true });
-    await fs.writeFile(path.join(sourceFolder, 'video.mp4'), 'content-a');
+    await fs.writeFile(path.join(sourceFolder, 'video.mp4'), 'content-a-longer');
     
     await fs.mkdir(targetFolder, { recursive: true });
     await fs.writeFile(path.join(targetFolder, 'video.mp4'), 'content-b');
@@ -100,11 +100,95 @@ describe('mover', () => {
     
     await fs.mkdir(dirA, { recursive: true });
     await fs.mkdir(dirB, { recursive: true });
-    await fs.writeFile(path.join(dirA, 'file.txt'), 'content-a');
+    await fs.writeFile(path.join(dirA, 'file.txt'), 'content-a-longer');
     await fs.writeFile(path.join(dirB, 'file.txt'), 'content-b');
 
     const result = await isContentIdentical(dirA, dirB);
     assert.strictEqual(result, false);
+
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('should move folder to conflict dir when target exists with different content', async () => {
+    const tempDir = await createTempDir();
+    const sourceDir = path.join(tempDir, 'source');
+    const targetDir = path.join(tempDir, 'target');
+    const conflictDir = path.join(tempDir, 'conflict');
+    const sourceFolder = path.join(sourceDir, 'ABC-123');
+    const targetFolder = path.join(targetDir, 'ABC-123');
+    
+    await fs.mkdir(sourceFolder, { recursive: true });
+    await fs.writeFile(path.join(sourceFolder, 'video.mp4'), 'content-a-longer');
+    
+    await fs.mkdir(targetFolder, { recursive: true });
+    await fs.writeFile(path.join(targetFolder, 'video.mp4'), 'content-b');
+
+    const result = await moveFolder(sourceFolder, targetFolder, conflictDir);
+
+    assert.strictEqual(result.status, 'moved_to_conflict');
+    const conflictFolder = path.join(conflictDir, 'ABC-123');
+    const conflictExists = await fs.access(conflictFolder)
+      .then(() => true).catch(() => false);
+    assert.strictEqual(conflictExists, true);
+    const sourceStillExists = await fs.access(sourceFolder)
+      .then(() => true).catch(() => false);
+    assert.strictEqual(sourceStillExists, false);
+
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('should delete source when conflict dir exists with identical content', async () => {
+    const tempDir = await createTempDir();
+    const sourceDir = path.join(tempDir, 'source');
+    const targetDir = path.join(tempDir, 'target');
+    const conflictDir = path.join(tempDir, 'conflict');
+    const sourceFolder = path.join(sourceDir, 'ABC-123');
+    const targetFolder = path.join(targetDir, 'ABC-123');
+    const conflictFolder = path.join(conflictDir, 'ABC-123');
+    
+    await fs.mkdir(sourceFolder, { recursive: true });
+    await fs.writeFile(path.join(sourceFolder, 'video.mp4'), 'same-content');
+    
+    await fs.mkdir(targetFolder, { recursive: true });
+    await fs.writeFile(path.join(targetFolder, 'video.mp4'), 'diff-content-longer');
+
+    await fs.mkdir(conflictFolder, { recursive: true });
+    await fs.writeFile(path.join(conflictFolder, 'video.mp4'), 'same-content');
+
+    const result = await moveFolder(sourceFolder, targetFolder, conflictDir);
+
+    assert.strictEqual(result.status, 'deleted');
+    const sourceExists = await fs.access(sourceFolder)
+      .then(() => true).catch(() => false);
+    assert.strictEqual(sourceExists, false);
+
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('should return conflict when both target and conflict dir exist with different content', async () => {
+    const tempDir = await createTempDir();
+    const sourceDir = path.join(tempDir, 'source');
+    const targetDir = path.join(tempDir, 'target');
+    const conflictDir = path.join(tempDir, 'conflict');
+    const sourceFolder = path.join(sourceDir, 'ABC-123');
+    const targetFolder = path.join(targetDir, 'ABC-123');
+    const conflictFolder = path.join(conflictDir, 'ABC-123');
+    
+    await fs.mkdir(sourceFolder, { recursive: true });
+    await fs.writeFile(path.join(sourceFolder, 'video.mp4'), 'content-a-longer');
+    
+    await fs.mkdir(targetFolder, { recursive: true });
+    await fs.writeFile(path.join(targetFolder, 'video.mp4'), 'content-b');
+
+    await fs.mkdir(conflictFolder, { recursive: true });
+    await fs.writeFile(path.join(conflictFolder, 'video.mp4'), 'content-c-different');
+
+    const result = await moveFolder(sourceFolder, targetFolder, conflictDir);
+
+    assert.strictEqual(result.status, 'conflict');
+    const sourceStillExists = await fs.access(sourceFolder)
+      .then(() => true).catch(() => false);
+    assert.strictEqual(sourceStillExists, true);
 
     await fs.rm(tempDir, { recursive: true, force: true });
   });

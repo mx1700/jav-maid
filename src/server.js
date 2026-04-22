@@ -1,7 +1,7 @@
 import { setTimeout } from 'node:timers/promises';
 import { organize as defaultOrganize } from './index.js';
 
-export async function startServer(source, target, concurrency, intervalMinutes, onProgress = null, { signal, organize = defaultOrganize } = {}) {
+export async function startServer(source, target, concurrency, intervalMinutes, onProgress = null, { signal, organize = defaultOrganize, conflictDir = null } = {}) {
   let round = 0;
   const controller = new AbortController();
 
@@ -24,7 +24,7 @@ export async function startServer(source, target, concurrency, intervalMinutes, 
       console.log(`\n[${now}] 开始第 ${round} 轮整理...`);
 
       try {
-        await organize(source, target, concurrency, onProgress);
+        await organize(source, target, concurrency, onProgress, conflictDir);
       } catch (err) {
         console.error(`第 ${round} 轮整理发生错误:`, err.message);
       }

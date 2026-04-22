@@ -116,4 +116,29 @@ describe('integration', () => {
     await fs.chmod(path.join(sourceDir, 'BAD-001'), 0o755);
     await fs.rm(tempDir, { recursive: true, force: true });
   });
+
+  it('should move to conflict dir when target exists with different content', async () => {
+    const tempDir = await createTempDir();
+    const sourceDir = path.join(tempDir, 'source');
+    const targetDir = path.join(tempDir, 'target');
+    const conflictDir = path.join(tempDir, 'conflict');
+
+    await fs.mkdir(path.join(sourceDir, 'MNO-345'), { recursive: true });
+    await fs.writeFile(path.join(sourceDir, 'MNO-345', 'video.mp4'), 'source-content-longer');
+
+    await fs.mkdir(path.join(targetDir, 'MNO-345'), { recursive: true });
+    await fs.writeFile(path.join(targetDir, 'MNO-345', 'video.mp4'), 'target-content');
+
+    const result = await organize(sourceDir, targetDir, 1, null, conflictDir);
+
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].status, 'moved_to_conflict');
+    assert.strictEqual(result[0].newFolderName, 'MNO-345');
+
+    const conflictFile = path.join(conflictDir, 'MNO-345', 'MNO-345.mp4');
+    const exists = await fs.access(conflictFile).then(() => true).catch(() => false);
+    assert.strictEqual(exists, true);
+
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
 });

@@ -13,6 +13,7 @@ program
   .requiredOption('-s, --source <path>', '源文件夹路径', process.env.JAV_SOURCE)
   .requiredOption('-t, --target <path>', '目标文件夹路径', process.env.JAV_TARGET)
   .option('-c, --concurrency <n>', '并行处理数', process.env.JAV_CONCURRENCY || '5')
+  .option('-cf, --conflict <path>', '冲突文件夹路径', process.env.JAV_CONFLICT)
   .option('--server', '启用 server 模式')
   .option('-i, --interval <n>', 'server 模式执行间隔（分钟）', process.env.JAV_INTERVAL || '15')
   .parse();
@@ -22,6 +23,7 @@ const source = options.source;
 const target = options.target;
 const concurrency = parseInt(options.concurrency, 10);
 const interval = parseInt(options.interval, 10);
+const conflictDir = options.conflict || null;
 
 async function main() {
   // 验证源文件夹存在
@@ -48,10 +50,25 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`开始整理...\n源文件夹: ${source}\n目标文件夹: ${target}\n并发数: ${concurrency}\n`);
+  // 检查冲突文件夹（如果配置）
+  if (conflictDir) {
+    try {
+      const conflictStat = await fs.stat(conflictDir);
+      if (!conflictStat.isDirectory()) {
+        console.error(`错误: 冲突路径不是文件夹: ${conflictDir}`);
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error(`错误: 冲突文件夹不存在: ${conflictDir}`);
+      process.exit(1);
+    }
+  }
+
+  console.log(`开始整理...\n源文件夹: ${source}\n目标文件夹: ${target}${conflictDir ? '\n冲突文件夹: ' + conflictDir : ''}\n并发数: ${concurrency}\n`);
 
   const statusMap = {
     moved: ' [移动成功]',
+    moved_to_conflict: ' [移动到冲突文件夹]',
     deleted: ' [已删除]',
     conflict: ' [冲突]',
     skipped: ' [跳过]'
@@ -67,11 +84,11 @@ async function main() {
 
   if (options.server) {
     console.log(`Server 模式已启动，间隔: ${interval} 分钟\n`);
-    await startServer(source, target, concurrency, interval, progressCallback);
+    await startServer(source, target, concurrency, interval, progressCallback, { conflictDir });
     return;
   }
 
-  const results = await organize(source, target, concurrency, progressCallback);
+  const results = await organize(source, target, concurrency, progressCallback, conflictDir);
 
   const summary = results.reduce((acc, r) => {
     acc[r.status] = (acc[r.status] || 0) + 1;
@@ -80,6 +97,7 @@ async function main() {
 
   console.log(`\n总计: ${results.length} 个文件夹`);
   console.log(`  移动成功: ${summary.moved || 0}`);
+  console.log(`  移动到冲突文件夹: ${summary.moved_to_conflict || 0}`);
   console.log(`  已删除: ${summary.deleted || 0}`);
   console.log(`  冲突: ${summary.conflict || 0}`);
   console.log(`  跳过: ${summary.skipped || 0}`);
