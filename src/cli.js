@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { organize } from './index.js';
+import { startServer } from './server.js';
 import fs from 'node:fs/promises';
 
 const program = new Command();
@@ -12,12 +13,15 @@ program
   .requiredOption('-s, --source <path>', '源文件夹路径', process.env.JAV_SOURCE)
   .requiredOption('-t, --target <path>', '目标文件夹路径', process.env.JAV_TARGET)
   .option('-c, --concurrency <n>', '并行处理数', process.env.JAV_CONCURRENCY || '5')
+  .option('--server', '启用 server 模式')
+  .option('-i, --interval <n>', 'server 模式执行间隔（分钟）', process.env.JAV_INTERVAL || '15')
   .parse();
 
 const options = program.opts();
 const source = options.source;
 const target = options.target;
 const concurrency = parseInt(options.concurrency, 10);
+const interval = parseInt(options.interval, 10);
 
 async function main() {
   // 验证源文件夹存在
@@ -53,13 +57,21 @@ async function main() {
     skipped: ' [跳过]'
   };
 
-  const results = await organize(source, target, concurrency, (result) => {
+  const progressCallback = (result) => {
     const arrow = result.newFolderName ? ` → ${result.newFolderName}` : '';
     console.log(`${result.sourceName}${arrow}${statusMap[result.status] || ''}`);
     if (result.message) {
       console.log(`  └─ ${result.message}`);
     }
-  });
+  };
+
+  if (options.server) {
+    console.log(`Server 模式已启动，间隔: ${interval} 分钟\n`);
+    await startServer(source, target, concurrency, interval, progressCallback);
+    return;
+  }
+
+  const results = await organize(source, target, concurrency, progressCallback);
 
   const summary = results.reduce((acc, r) => {
     acc[r.status] = (acc[r.status] || 0) + 1;
