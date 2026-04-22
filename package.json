@@ -1,0 +1,22 @@
+{
+  "name": "jav-organizer",
+  "version": "1.0.0",
+  "description": "JAV 文件整理工具",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "jav-organizer": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "start": "node src/cli.js"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "p-limit": "^5.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
