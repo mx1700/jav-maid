@@ -28,13 +28,6 @@ export async function isContentIdentical(dirA, dirB) {
     if (statA.size !== statB.size) {
       return false;
     }
-
-    // 比较文件内容
-    const contentA = await fs.readFile(fileAPath);
-    const contentB = await fs.readFile(fileBPath);
-    if (!contentA.equals(contentB)) {
-      return false;
-    }
   }
 
   return true;
