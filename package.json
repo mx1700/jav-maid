@@ -1,11 +1,11 @@
 {
-  "name": "jav-organizer",
-  "version": "1.0.0",
+  "name": "jav-maid",
+  "version": "0.2.0",
   "description": "JAV 文件整理工具",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "jav-organizer": "src/cli.js"
+    "jav-maid": "src/cli.js"
   },
   "scripts": {
     "test": "node --test test/**/*.test.js",
