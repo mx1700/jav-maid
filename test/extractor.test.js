@@ -92,4 +92,29 @@ describe('extractor', () => {
     const result = extractCode('ABC-123-DVD');
     assert.deepStrictEqual(result, { code: 'ABC-123', extra: null });
   });
+
+  it('should extract T28-xxx format', () => {
+    const result = extractCode('T28-529');
+    assert.deepStrictEqual(result, { code: 'T28-529', extra: null });
+  });
+
+  it('should extract T28-xxx format with extra -C', () => {
+    const result = extractCode('T28-529-C');
+    assert.deepStrictEqual(result, { code: 'T28-529', extra: 'C' });
+  });
+
+  it('should extract T28-xxx from website prefix', () => {
+    const result = extractCode('hhd800.com@T28-529');
+    assert.deepStrictEqual(result, { code: 'T28-529', extra: null });
+  });
+
+  it('should prefer right side over T28-xxx when multiple candidates', () => {
+    const result = extractCode('HDD800@T28-529');
+    assert.deepStrictEqual(result, { code: 'T28-529', extra: null });
+  });
+
+  it('should extract T28-xxx from bracket prefix with similar pattern', () => {
+    const result = extractCode('[FHD-1080P]T28-529');
+    assert.deepStrictEqual(result, { code: 'T28-529', extra: null });
+  });
 });

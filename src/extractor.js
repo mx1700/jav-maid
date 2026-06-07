@@ -7,8 +7,8 @@ export function extractCode(name) {
   // 预处理：下划线替换为横线
   const processed = name.replace(/_/g, '-');
 
-  // 从后向前匹配番号：[A-Z]{2,5}-?\d{3,5}
-  const codeRegex = /[A-Z]{2,5}-?\d{3,5}/gi;
+  // 优先匹配 T28-xxx（字母固定 T，第一个数字固定 28），再匹配标准 [A-Z]{2,5}-?\d{3,5}
+  const codeRegex = /(?:T28-\d{3,5}|[A-Z]{2,5}-?\d{3,5})/gi;
   const matches = processed.match(codeRegex);
 
   if (!matches || matches.length === 0) {
