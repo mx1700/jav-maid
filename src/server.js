@@ -27,6 +27,10 @@ export async function startServer(source, target, concurrency, intervalMinutes, 
         await organize(source, target, concurrency, onProgress, conflictDir);
       } catch (err) {
         console.error(`第 ${round} 轮整理发生错误:`, err.message);
+        if (err.code === 'ENOTCONN') {
+          console.error('检测到 ENOTCONN 错误（socket not connected），进程退出');
+          process.exit(1);
+        }
       }
 
       console.log(`本轮整理完成，下次运行将在 ${intervalMinutes} 分钟后`);
